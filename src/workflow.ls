@@ -18,7 +18,7 @@ moment    = require('moment')
 debug "7"
 urlencode = require('urlencode')
 debug "8"
-cachedb   = require('./cache')(true)
+cachedb   = require('./cache')(false)
 debug "9"
 {item, feedback, noitem} = require('./feedback')
 debug "10"
@@ -43,7 +43,9 @@ o = (e, v) ->
 
 train-search = [
     o "!`numeroTreno`"
+    o "`arrivo` < `hint`"
     o "`arrivo` <"
+    o "`partenza` > `hint`"
     o "`partenza` >"
     o "$u", { +update-cache } # Update cache
     o "$p", { +process-cache } # Update cache
@@ -106,7 +108,7 @@ showStazione = (name) ->
                 cachedb.get(it).then (data) ->
                     name = data.nomeOrig
                     url = "www.google.com/maps/preview/@#{data.lat},#{data.lon},14z"
-                    return (item({title: name, subtitle: "Open #name in google maps", autocomplete: "#name >", valid: true, arg: url}))
+                    return (item({title: name, subtitle: "Open #name in google maps", icon: icon('station'), autocomplete: "#name >", valid: true, arg: url}))
             .then (items) ->
                 feedback items
     .then -> 
@@ -135,12 +137,14 @@ getTreniPartenza = (codiceStazione) ->
     s!.get("#lurl").endAsync().then ->
         departureTrains = it.body.map ->
             binario = ""
+            confirmed = false
             if it.binarioEffettivoPartenzaDescrizione?
                 binario = that+" - Conf."
+                confirmed = true
             else
                 binario = S(it.binarioProgrammatoPartenzaDescrizione).humanize()
 
-            { numero: it.numeroTreno, destinazione: it.destinazione, orario: moment(it.orarioPartenza), binario: binario, ritardo: it.ritardo}
+            { numero: it.numeroTreno, destinazione: it.destinazione, orario: moment(it.orarioPartenza), confirmed: confirmed, binario: binario, ritardo: it.ritardo}
 
 getTreniArrivo = (codiceStazione) ->
     timefmt = "ddd MMM D YYYY H:m:s"
@@ -149,34 +153,60 @@ getTreniArrivo = (codiceStazione) ->
     s!.get("#lurl").endAsync().then ->
         arrivalTrains = it.body.map ->
             binario = ""
+            confirmed = false
             if it.binarioEffettivoArrivoDescrizione?
                 binario = that+" - Conf."
+                confirmed = true
             else
                 binario = S(it.binarioProgrammatoArrivoDescrizione).humanize()
 
-            { numero: it.numeroTreno, origine: it.origine, orario: moment(it.orarioArrivo), binario: binario, ritardo: it.ritardo }
+            { numero: it.numeroTreno, origine: it.origine, orario: moment(it.orarioArrivo), confirmed: confirmed, binario: binario, ritardo: it.ritardo }
+
+icon = ->
+        "#{__dirname}/../images/#it.png"
+
+getIconTrain = (train) ->
+    
+
+    now = moment()
+    tor = moment(train.orario)
+    tor.add(train.ritardo, 'm')
+    if now.isAfter(tor) 
+        return icon('past')
+    if train.confirmed
+        return icon('late')
+    if now.isBefore(train.orario)
+        return icon('future')
+    return icon('futurec')
+
 
 showDettagliStazione = (stazione, options) ->
     if options.partenze?
         getTreniPartenza(stazione.codice).then (treni-in-partenza) ->
+            if options.hint?
+                treni-in-partenza = require('./filter').filterBy(options.hint, treni-in-partenza, (.destinazione))
             q.all treni-in-partenza.map (train) ->
                 ditem = 
                     title: ("#{stazione.nomeOrig} > #{S(train.destinazione).humanize()}")
                     subtitle: "Departs #{moment(train.orario).format("HH:mm")} (Rit. #{train.ritardo}) - Track #{train.binario}"
                     autocomplete: "!#{train.numero}"
                     valid: true
+                    icon: getIconTrain(train)
                 return item(ditem)                    
             .then (items) ->
                 winston.info items
                 feedback(items)
     else 
         getTreniArrivo(stazione.codice).then (treni-in-arrivo) ->
+            if options.hint?
+                treni-in-arrivo = require('./filter').filterBy(options.hint, treni-in-arrivo, (.origine))
             q.all treni-in-arrivo.map (train) ->
                 ditem = 
                     title: ("#{stazione.nomeOrig} < #{S(train.origine).humanize()}")
                     subtitle: "Arrives #{moment(train.orario).format("HH:mm")} (Rit. #{train.ritardo}) - Track #{train.binario}"
                     autocomplete: "!#{train.numero}"
                     valid: true
+                    icon: getIconTrain(train)
                 return item(ditem)                    
             .then (items) ->
                 winston.info items
@@ -210,9 +240,9 @@ if args?
     if parsed?.selezionaStazione?
         showStazione(parsed.selezionaStazione)
     if parsed?.partenza?
-        showTreni(parsed.partenza, { +partenze} )
+        showTreni(parsed.partenza, { hint: parsed.hint, +partenze} )
     if parsed?.arrivo?
-        showTreni(parsed.arrivo, { +arrivi} )
+        showTreni(parsed.arrivo, { hint: parsed.hint, +arrivi} )
 
 
 

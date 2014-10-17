@@ -25,6 +25,6 @@
     "redis": "~0.12.1",
     "string": "~2.1.0"
   },
-  "filter-icon": "images/icon.png",
-  "workflow-icon": "images/icon.png"
+  "filter-icon": "images/filter.png",
+  "workflow-icon": "images/workflow.png"
 }
