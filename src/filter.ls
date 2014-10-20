@@ -8,11 +8,11 @@ _module = ->
     iface = { 
         filterBy: (pattern, array, accessor, opts) ->
             debug pattern
-            indexed = _.indexBy(array, accessor) 
+            indexed = _.groupBy(array, accessor) 
             names = array.map(accessor)
             filtered = filter(pattern, names, opts)
             debug filtered
-            return _.values(_.pick(indexed, filtered))
+            return _.flatten(_.values(_.pick(indexed, filtered)))
 
     }
   

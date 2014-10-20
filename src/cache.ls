@@ -20,7 +20,6 @@ _module = (use-redis=false) ->
                 db.getAsync(key)
             close: ->
                 q.resolve(false)
-
         }
         return iface
     else
@@ -28,8 +27,11 @@ _module = (use-redis=false) ->
 
         iface = {
             open: ~>
-                @client = require('redis').createClient()
-                @client = q.promisifyAll(@client)
+
+                if _.isEmpty(@client)
+                    @client = require('redis').createClient()
+                    @client = q.promisifyAll(@client)
+
                 q.resolve(true)
 
             put: (key, value) ~>

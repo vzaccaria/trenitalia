@@ -24,6 +24,7 @@ debug "9"
 debug "10"
 S = require('string');
 debug "11"
+{ showqueries, addquery } = require('./querycache')(cachedb,10)
 
 # The cached-data
 
@@ -74,7 +75,6 @@ update-cache = ->
         fs.writeFileAsync("#{__dirname}/../cache.json", JSON.stringify(dta, 0, 4), 'utf8')
 
 process-data = ->
-    cachedb.open!.then ->
         debug "Processing data.."
         data = require("#{__dirname}/../cache.json")
 
@@ -93,15 +93,12 @@ process-data = ->
             cachedb.put(k,v)
         
         cache.names = _.map cache.hash, (.nome)
-
         cachedb.put('names', cache.names)
-    .then ->
-        cachedb.close!
+
 
 
 showStazione = (name) ->
-    cachedb.open!.then ->
-        cachedb.get('names').then ->
+    cachedb.get('names').then ->
             allnames = _.values(it)
             filt = filter(name, allnames, {limit:10})
             q.all filt.map ->
@@ -111,8 +108,6 @@ showStazione = (name) ->
                     return (item({title: name, subtitle: "Open #name in google maps", icon: icon('station'), autocomplete: "#name >", valid: true, arg: url}))
             .then (items) ->
                 feedback items
-    .then -> 
-        cachedb.close!
 
 show-error = (e,s) ->
     feedback([item({title: e, subtitle: s, valid: false})])
@@ -179,43 +174,60 @@ getIconTrain = (train) ->
         return icon('future')
     return icon('futurec')
 
+shouldShow = (train) ->
+    now = moment()
+    tor = moment(train.orario)
+    tor.add(train.ritardo, 'm')
+    if now.isAfter(tor) 
+        return false
+    else 
+        return true
+
 
 showDettagliStazione = (stazione, options) ->
     if options.partenze?
         getTreniPartenza(stazione.codice).then (treni-in-partenza) ->
+            treni-in-partenza = _.sortBy(treni-in-partenza, -> it.orario.valueOf())
             if options.hint?
                 treni-in-partenza = require('./filter').filterBy(options.hint, treni-in-partenza, (.destinazione))
             q.all treni-in-partenza.map (train) ->
-                ditem = 
-                    title: ("#{stazione.nomeOrig} > #{S(train.destinazione).humanize()}")
-                    subtitle: "Departs #{moment(train.orario).format("HH:mm")} (Rit. #{train.ritardo}) - Track #{train.binario}"
-                    autocomplete: "!#{train.numero}"
-                    valid: true
-                    icon: getIconTrain(train)
-                return item(ditem)                    
+                if shouldShow(train)
+                    ditem = 
+                        title: ("#{stazione.nomeOrig} > #{S(train.destinazione).humanize()}")
+                        subtitle: "Departs #{moment(train.orario).format("HH:mm")} (Rit. #{train.ritardo}) - Track #{train.binario}"
+                        autocomplete: "#{stazione.nomeOrig} > #{S(train.destinazione).humanize()}"
+                        valid: true
+                        icon: getIconTrain(train)
+                    return item(ditem)                    
+                else
+                    return noitem!
+
             .then (items) ->
                 winston.info items
                 feedback(items)
     else 
         getTreniArrivo(stazione.codice).then (treni-in-arrivo) ->
+            treni-in-arrivo = _.sortBy(treni-in-arrivo, -> it.orario.valueOf())
             if options.hint?
                 treni-in-arrivo = require('./filter').filterBy(options.hint, treni-in-arrivo, (.origine))
             q.all treni-in-arrivo.map (train) ->
-                ditem = 
-                    title: ("#{stazione.nomeOrig} < #{S(train.origine).humanize()}")
-                    subtitle: "Arrives #{moment(train.orario).format("HH:mm")} (Rit. #{train.ritardo}) - Track #{train.binario}"
-                    autocomplete: "!#{train.numero}"
-                    valid: true
-                    icon: getIconTrain(train)
-                return item(ditem)                    
+                if shouldShow(train)
+                    ditem = 
+                        title: ("#{stazione.nomeOrig} < #{S(train.origine).humanize()}")
+                        subtitle: "Arrives #{moment(train.orario).format("HH:mm")} (Rit. #{train.ritardo}) - Track #{train.binario}"
+                        autocomplete: "#{stazione.nomeOrig} < #{S(train.origine).humanize()}"
+                        valid: true
+                        icon: getIconTrain(train)
+                    return item(ditem)                    
+                else
+                    return noitem!
             .then (items) ->
                 winston.info items
                 feedback(items)     
 
 
 showTreni = (stazione, options) ->
-    cachedb.open!.then ->
-        cachedb.get('names').then ->
+    cachedb.get('names').then ->
             names = _.values(it)
             if not (stazione in names)
                 show-error("Sorry, no station found", "Type in an existing station or tab to autocomplete")
@@ -225,12 +237,11 @@ showTreni = (stazione, options) ->
                     showDettagliStazione(source, options)
                 .catch ->
                     show-error("Sorry, no station found", "Type in an existing station or tab to autocomplete")
-    .then ->
-        cachedb.close!
+
 
 debug process.argv 
 
-if args?
+if args? and args != ""
     parsed = parse(args)
     debug parsed
     if parsed?.update-cache?
@@ -239,10 +250,24 @@ if args?
         process-data()
     if parsed?.selezionaStazione?
         showStazione(parsed.selezionaStazione)
-    if parsed?.partenza?
-        showTreni(parsed.partenza, { hint: parsed.hint, +partenze} )
-    if parsed?.arrivo?
-        showTreni(parsed.arrivo, { hint: parsed.hint, +arrivi} )
+    if parsed?.partenza? or parsed?.arrivo?
+        cachedb.open!
+        .then ->
+            if parsed?.partenza?
+                showTreni(parsed.partenza, { hint: parsed.hint, +partenze} )
+            if parsed?.arrivo?
+                showTreni(parsed.arrivo, { hint: parsed.hint, +arrivi} )
+        .then ->
+            addquery(process.argv[2])
+        .then ->
+            cachedb.close!
+else
+    cachedb.open!
+    .then(showqueries)
+    .then ->
+        cachedb.close!
+
+
 
 
 

@@ -26,7 +26,7 @@ gen-script-filter = (name, script, png-icon-file) ->
     f = {
             config:
                 argumenttype: 1,
-                keyword: 't',
+                keyword: 'tt',
                 escaping: 32
                 runningsubtext: "Running #name...",
                 script: script 

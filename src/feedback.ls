@@ -6,10 +6,13 @@ _module = ->
     iface = { 
         item: (obj) ->
             let @=obj
+            
                 @valid ?= false
                 @subtitle ?= @title
+                @autocomplete ?= 'none'
                 @icon ?= 'icon.png'
                 @argn ?= 'noarg'
+
                 v = 
                     | @valid => 'yes'
                     | otherwise => no

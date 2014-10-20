@@ -15,7 +15,7 @@
     <key>webaddress</key>
     <string>https://your-git-address-here</string>
     <key>uid</key>
-    <string>4eca6175-51d5-466e-a62c-98f19f303fa6</string>
+    <string>62c45ecd-c742-48df-8f12-ac74154197ff</string>
     <key>objects</key>
     <array>
       <dict>
@@ -24,7 +24,7 @@
           <key>argumenttype</key>
           <integer>1</integer>
           <key>keyword</key>
-          <string>t</string>
+          <string>tt</string>
           <key>escaping</key>
           <integer>32</integer>
           <key>runningsubtext</key>
@@ -41,7 +41,7 @@
         <key>type</key>
         <string>alfred.workflow.input.scriptfilter</string>
         <key>uid</key>
-        <string>e9ae4252-9b01-4db4-a64b-3bc2b524245c</string>
+        <string>d624aeae-ffd4-4798-bb39-3e3f82008835</string>
         <key>version</key>
         <integer>0</integer>
       </dict>
@@ -58,16 +58,16 @@
         <key>type</key>
         <string>alfred.workflow.action.openurl</string>
         <key>uid</key>
-        <string>6cfd70ac-9e1e-4195-9ca1-8afa38f15168</string>
+        <string>a44eb95f-2a9a-44b0-b360-b4236530d803</string>
       </dict>
     </array>
     <key>connections</key>
     <dict>
-      <key>e9ae4252-9b01-4db4-a64b-3bc2b524245c</key>
+      <key>d624aeae-ffd4-4798-bb39-3e3f82008835</key>
       <array>
         <dict>
           <key>destinationuid</key>
-          <string>6cfd70ac-9e1e-4195-9ca1-8afa38f15168</string>
+          <string>a44eb95f-2a9a-44b0-b360-b4236530d803</string>
           <key>modifiers</key>
           <integer>0</integer>
           <key>modifiersubtext</key>
@@ -77,12 +77,12 @@
     </dict>
     <key>uidata</key>
     <dict>
-      <key>e9ae4252-9b01-4db4-a64b-3bc2b524245c</key>
+      <key>d624aeae-ffd4-4798-bb39-3e3f82008835</key>
       <dict>
         <key>ypos</key>
         <integer>10</integer>
       </dict>
-      <key>6cfd70ac-9e1e-4195-9ca1-8afa38f15168</key>
+      <key>a44eb95f-2a9a-44b0-b360-b4236530d803</key>
       <dict>
         <key>ypos</key>
         <integer>10</integer>
